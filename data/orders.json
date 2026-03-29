@@ -1,0 +1,220 @@
+[
+  {
+    "id": 1774729300611,
+    "table": "Mesa 0",
+    "status": "pronto",
+    "total": 7499992.5,
+    "createdAt": "2026-03-28T20:21:40.611Z",
+    "items": [
+      {
+        "id": "coca-cola-zero-sem-obs",
+        "name": "Coca-Cola Zero",
+        "quantity": 999999,
+        "notes": "",
+        "unitPrice": 7.5,
+        "total": 7499992.5
+      }
+    ]
+  },
+  {
+    "id": 1774729171601,
+    "table": "4444444444",
+    "status": "pronto",
+    "total": 1377.7,
+    "createdAt": "2026-03-28T20:19:31.601Z",
+    "items": [
+      {
+        "id": "combo-duplo-sem-obs",
+        "name": "Combo Duplo",
+        "quantity": 23,
+        "notes": "",
+        "unitPrice": 59.9,
+        "total": 1377.7
+      }
+    ]
+  },
+  {
+    "id": 1774729158973,
+    "table": "Mesa88888",
+    "status": "pronto",
+    "total": 414,
+    "createdAt": "2026-03-28T20:19:18.973Z",
+    "items": [
+      {
+        "id": "milk-shake-chocolate-sem-obs",
+        "name": "Milk-shake Chocolate",
+        "quantity": 23,
+        "notes": "",
+        "unitPrice": 18,
+        "total": 414
+      }
+    ]
+  },
+  {
+    "id": 1774729146223,
+    "table": "Mesa 34355",
+    "status": "pronto",
+    "total": 202.3,
+    "createdAt": "2026-03-28T20:19:06.223Z",
+    "items": [
+      {
+        "id": "x-bacon-sem-obs",
+        "name": "X-Bacon",
+        "quantity": 7,
+        "notes": "",
+        "unitPrice": 28.9,
+        "total": 202.3
+      }
+    ]
+  },
+  {
+    "id": 1774729137061,
+    "table": "Mesa 232",
+    "status": "pronto",
+    "total": 98,
+    "createdAt": "2026-03-28T20:18:57.061Z",
+    "items": [
+      {
+        "id": "batata-frita-m-sem-obs",
+        "name": "Batata Frita M",
+        "quantity": 7,
+        "notes": "",
+        "unitPrice": 14,
+        "total": 98
+      }
+    ]
+  },
+  {
+    "id": 1774729018063,
+    "table": "Mesa 333",
+    "status": "pronto",
+    "total": 3185.3,
+    "createdAt": "2026-03-28T20:16:58.063Z",
+    "items": [
+      {
+        "id": "x-bacon-sem-obs",
+        "name": "X-Bacon",
+        "quantity": 77,
+        "notes": "",
+        "unitPrice": 28.9,
+        "total": 2225.3
+      },
+      {
+        "id": "x-salada-sem-obs",
+        "name": "X-Salada",
+        "quantity": 20,
+        "notes": "",
+        "unitPrice": 24.9,
+        "total": 498
+      },
+      {
+        "id": "batata-frita-m-sem-obs",
+        "name": "Batata Frita M",
+        "quantity": 33,
+        "notes": "",
+        "unitPrice": 14,
+        "total": 462
+      }
+    ]
+  },
+  {
+    "id": 1774727147885,
+    "table": "Mesa 22",
+    "status": "pronto",
+    "total": 244,
+    "createdAt": "2026-03-28T19:45:47.885Z",
+    "items": [
+      {
+        "id": "x-bacon-sem-obs",
+        "name": "X-Bacon",
+        "quantity": 3,
+        "notes": "",
+        "unitPrice": 28.9,
+        "total": 86.7
+      },
+      {
+        "id": "coca-cola-zero-sem-obs",
+        "name": "Coca-Cola Zero",
+        "quantity": 5,
+        "notes": "",
+        "unitPrice": 7.5,
+        "total": 37.5
+      },
+      {
+        "id": "combo-duplo-sem-obs",
+        "name": "Combo Duplo",
+        "quantity": 2,
+        "notes": "",
+        "unitPrice": 59.9,
+        "total": 119.8
+      }
+    ]
+  },
+  {
+    "id": 101,
+    "table": "Mesa 3",
+    "status": "pronto",
+    "total": 65.3,
+    "createdAt": "2026-03-28T12:00:00.000Z",
+    "items": [
+      {
+        "id": "1-sem-obs",
+        "name": "X-Bacon",
+        "quantity": 2,
+        "notes": "",
+        "unitPrice": 28.9,
+        "total": 57.8
+      },
+      {
+        "id": "4-sem-obs",
+        "name": "Coca-Cola Zero",
+        "quantity": 1,
+        "notes": "",
+        "unitPrice": 7.5,
+        "total": 7.5
+      }
+    ]
+  },
+  {
+    "id": 102,
+    "table": "Mesa 7",
+    "status": "pronto",
+    "total": 73.9,
+    "createdAt": "2026-03-28T12:10:00.000Z",
+    "items": [
+      {
+        "id": "6-sem-obs",
+        "name": "Combo Duplo",
+        "quantity": 1,
+        "notes": "",
+        "unitPrice": 59.9,
+        "total": 59.9
+      },
+      {
+        "id": "3-sem-obs",
+        "name": "Batata Frita M",
+        "quantity": 1,
+        "notes": "",
+        "unitPrice": 14,
+        "total": 14
+      }
+    ]
+  },
+  {
+    "id": 103,
+    "table": "Mesa 2",
+    "status": "pronto",
+    "total": 36,
+    "createdAt": "2026-03-28T12:20:00.000Z",
+    "items": [
+      {
+        "id": "5-sem-obs",
+        "name": "Milk-shake Chocolate",
+        "quantity": 2,
+        "notes": "",
+        "unitPrice": 18,
+        "total": 36
+      }
+    ]
+  }
+]
