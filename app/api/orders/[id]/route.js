@@ -1,25 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-
-const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
-
-async function readOrdersFile() {
-  try {
-    const fileContent = await fs.readFile(ordersFilePath, "utf-8");
-    return JSON.parse(fileContent);
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return [];
-    }
-
-    throw error;
-  }
-}
-
-async function writeOrdersFile(orders) {
-  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2), "utf-8");
-}
+import { sql } from "../../../../utils/db";
 
 export async function PATCH(request, context) {
   try {
@@ -36,27 +16,38 @@ export async function PATCH(request, context) {
       );
     }
 
-    const orders = await readOrdersFile();
+    const updatedRows = await sql`
+      UPDATE orders
+      SET status = ${status}
+      WHERE id = ${id}
+      RETURNING
+        id,
+        table_name,
+        status,
+        total,
+        created_at,
+        items
+    `;
 
-    const orderIndex = orders.findIndex(
-      (order) => String(order.id) === String(id)
-    );
-
-    if (orderIndex === -1) {
+    if (!updatedRows.length) {
       return NextResponse.json(
         { message: "Pedido não encontrado." },
         { status: 404 }
       );
     }
 
-    orders[orderIndex] = {
-      ...orders[orderIndex],
-      status,
+    const row = updatedRows[0];
+
+    const updatedOrder = {
+      id: Number(row.id),
+      table: row.table_name,
+      status: row.status,
+      total: Number(row.total),
+      createdAt: row.created_at,
+      items: row.items,
     };
 
-    await writeOrdersFile(orders);
-
-    return NextResponse.json(orders[orderIndex], { status: 200 });
+    return NextResponse.json(updatedOrder, { status: 200 });
   } catch (error) {
     console.error("Erro ao atualizar pedido:", error);
 

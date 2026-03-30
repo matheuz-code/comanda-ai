@@ -1,25 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-
-const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
-
-async function readOrdersFile() {
-  try {
-    const fileContent = await fs.readFile(ordersFilePath, "utf-8");
-    return JSON.parse(fileContent);
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return [];
-    }
-
-    throw error;
-  }
-}
-
-async function writeOrdersFile(orders) {
-  await fs.writeFile(ordersFilePath, JSON.stringify(orders, null, 2), "utf-8");
-}
+import { sql } from "../../../utils/db";
 
 function calculateOrderTotal(items = []) {
   return Number(
@@ -29,7 +9,26 @@ function calculateOrderTotal(items = []) {
 
 export async function GET() {
   try {
-    const orders = await readOrdersFile();
+    const rows = await sql`
+      SELECT
+        id,
+        table_name,
+        status,
+        total,
+        created_at,
+        items
+      FROM orders
+      ORDER BY created_at DESC
+    `;
+
+    const orders = rows.map((row) => ({
+      id: Number(row.id),
+      table: row.table_name,
+      status: row.status,
+      total: Number(row.total),
+      createdAt: row.created_at,
+      items: row.items,
+    }));
 
     return NextResponse.json(orders, { status: 200 });
   } catch (error) {
@@ -54,8 +53,6 @@ export async function POST(request) {
       );
     }
 
-    const orders = await readOrdersFile();
-
     const newOrder = {
       id: Date.now(),
       table,
@@ -65,9 +62,23 @@ export async function POST(request) {
       items,
     };
 
-    const updatedOrders = [newOrder, ...orders];
-
-    await writeOrdersFile(updatedOrders);
+    await sql`
+      INSERT INTO orders (
+        id,
+        table_name,
+        status,
+        total,
+        created_at,
+        items
+      ) VALUES (
+        ${newOrder.id},
+        ${newOrder.table},
+        ${newOrder.status},
+        ${newOrder.total},
+        ${newOrder.createdAt},
+        ${JSON.stringify(newOrder.items)}
+      )
+    `;
 
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
