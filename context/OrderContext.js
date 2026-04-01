@@ -19,9 +19,10 @@ export function OrderProvider({ children }) {
       }
 
       const data = await response.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -31,58 +32,50 @@ export function OrderProvider({ children }) {
     fetchOrders();
   }, []);
 
-  async function addConfirmedOrder(orderData) {
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderData),
-      });
+  async function createOrder(orderData) {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(orderData),
+    });
 
-      if (!response.ok) {
-        throw new Error("Falha ao criar pedido.");
-      }
-
-      const createdOrder = await response.json();
-
-      setOrders((prev) => [createdOrder, ...prev]);
-
-      return { success: true, order: createdOrder };
-    } catch (error) {
-      console.error("Erro ao adicionar pedido:", error);
-      return { success: false, error };
+    if (!response.ok) {
+      throw new Error("Falha ao criar pedido.");
     }
+
+    const createdOrder = await response.json();
+
+    setOrders((prev) => [createdOrder, ...prev]);
+
+    return createdOrder;
   }
 
   async function updateOrderStatus(orderId, status) {
-    try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
+    const response = await fetch(`/api/orders/${orderId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
 
-      if (!response.ok) {
-        throw new Error("Falha ao atualizar status do pedido.");
-      }
-
-      const updatedOrder = await response.json();
-
-      setOrders((prev) =>
-        prev.map((order) =>
-          String(order.id) === String(orderId) ? updatedOrder : order
-        )
-      );
-
-      return { success: true, order: updatedOrder };
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      return { success: false, error };
+    if (!response.ok) {
+      throw new Error("Falha ao atualizar status do pedido.");
     }
+
+    const updatedOrder = await response.json();
+
+    setOrders((prev) =>
+      prev.map((order) => (order.id === orderId ? updatedOrder : order))
+    );
+
+    return updatedOrder;
+  }
+
+  function clearOrders() {
+    setOrders([]);
   }
 
   const value = useMemo(() => {
@@ -90,8 +83,12 @@ export function OrderProvider({ children }) {
       orders,
       loading,
       fetchOrders,
-      addConfirmedOrder,
+      createOrder,
       updateOrderStatus,
+      clearOrders,
+
+      // compatibilidade com código antigo
+      addConfirmedOrder: createOrder,
     };
   }, [orders, loading]);
 
@@ -102,7 +99,7 @@ export function useOrders() {
   const context = useContext(OrderContext);
 
   if (!context) {
-    throw new Error("useOrders deve ser usado dentro de um OrderProvider.");
+    throw new Error("useOrders precisa ser usado dentro de OrderProvider.");
   }
 
   return context;

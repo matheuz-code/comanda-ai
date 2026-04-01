@@ -3,7 +3,7 @@ import { OrderProvider } from "../context/OrderContext";
 
 export const metadata = {
   title: "Comanda AI",
-  description: "Sistema de comanda digital com agente de IA",
+  description: "Sistema de comanda digital com IA",
 };
 
 export default function RootLayout({ children }) {

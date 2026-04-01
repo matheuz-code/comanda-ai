@@ -1,102 +1,209 @@
 "use client";
 
 import { useMemo } from "react";
-import StatusBadge from "../../components/StatusBadge";
 import { useOrders } from "../../context/OrderContext";
 
-const statusPriority = {
-  novo: 0,
-  preparo: 1,
-  pronto: 2,
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "radial-gradient(circle at top left, #0b2c75 0%, #03123f 45%, #020b2d 100%)",
+    color: "#f5f7ff",
+    padding: "48px 24px",
+    fontFamily: "Arial, sans-serif",
+  },
+  container: {
+    maxWidth: "1280px",
+    margin: "0 auto",
+  },
+  title: {
+    fontSize: "64px",
+    lineHeight: 1,
+    fontWeight: 800,
+    margin: 0,
+    marginBottom: "12px",
+  },
+  subtitle: {
+    fontSize: "18px",
+    color: "#d7def7",
+    marginBottom: "28px",
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: "20px",
+  },
+  card: {
+    background: "rgba(28, 45, 98, 0.86)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "28px",
+    padding: "24px",
+    boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
+  },
+  orderId: {
+    fontSize: "15px",
+    color: "#cbd6ff",
+    marginBottom: "10px",
+  },
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+    marginBottom: "18px",
+  },
+  table: {
+    fontSize: "38px",
+    fontWeight: 800,
+    margin: 0,
+  },
+  badge: {
+    padding: "10px 16px",
+    borderRadius: "999px",
+    fontWeight: 800,
+    fontSize: "15px",
+    textTransform: "lowercase",
+    border: "1px solid rgba(255,255,255,0.1)",
+  },
+  badgeNovo: {
+    background: "rgba(175, 120, 25, 0.22)",
+    color: "#ffd56a",
+  },
+  badgePreparo: {
+    background: "rgba(45, 102, 210, 0.22)",
+    color: "#8fc1ff",
+  },
+  badgePronto: {
+    background: "rgba(19, 150, 120, 0.22)",
+    color: "#67f0cc",
+  },
+  itemsWrap: {
+    display: "grid",
+    gap: "14px",
+    marginBottom: "18px",
+  },
+  itemCard: {
+    background: "rgba(58, 74, 126, 0.72)",
+    borderRadius: "22px",
+    padding: "18px",
+  },
+  itemName: {
+    fontSize: "18px",
+    fontWeight: 800,
+    marginBottom: "8px",
+  },
+  itemNotes: {
+    fontSize: "15px",
+    color: "#d7def7",
+  },
+  actions: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  prepButton: {
+    border: "none",
+    borderRadius: "18px",
+    padding: "14px 20px",
+    fontSize: "16px",
+    fontWeight: 800,
+    cursor: "pointer",
+    background: "#326cf0",
+    color: "#ffffff",
+    minWidth: "160px",
+  },
+  readyButton: {
+    border: "none",
+    borderRadius: "18px",
+    padding: "14px 20px",
+    fontSize: "16px",
+    fontWeight: 800,
+    cursor: "pointer",
+    background: "#19b877",
+    color: "#ffffff",
+    minWidth: "160px",
+  },
+  empty: {
+    background: "rgba(28, 45, 98, 0.86)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "28px",
+    padding: "24px",
+    color: "#d7def7",
+    fontSize: "18px",
+  },
 };
 
-export default function KitchenPage() {
-  const { orders, loading, updateOrderStatus } = useOrders();
-
-  const sortedOrders = useMemo(() => {
-    return [...orders].sort((a, b) => {
-      const statusDiff = statusPriority[a.status] - statusPriority[b.status];
-      if (statusDiff !== 0) return statusDiff;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [orders]);
-
-  if (loading) {
-    return (
-      <main className="page-shell">
-        <div className="page-container">
-          <header className="page-header">
-            <h1 className="page-title">Painel da Cozinha</h1>
-            <p className="page-subtitle">Carregando pedidos...</p>
-          </header>
-        </div>
-      </main>
-    );
+function getBadgeStyle(status) {
+  if (status === "preparo") {
+    return { ...styles.badge, ...styles.badgePreparo };
   }
 
+  if (status === "pronto") {
+    return { ...styles.badge, ...styles.badgePronto };
+  }
+
+  return { ...styles.badge, ...styles.badgeNovo };
+}
+
+export default function KitchenPage() {
+  const { orders, updateOrderStatus } = useOrders();
+
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => Number(b.id) - Number(a.id));
+  }, [orders]);
+
   return (
-    <main className="page-shell">
-      <div className="page-container">
-        <header className="page-header">
-          <h1 className="page-title">Painel da Cozinha</h1>
-          <p className="page-subtitle">
-            Atualize rapidamente o andamento dos pedidos.
-          </p>
-        </header>
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <h1 style={styles.title}>Painel da Cozinha</h1>
+        <p style={styles.subtitle}>
+          Atualize rapidamente o andamento dos pedidos.
+        </p>
 
         {sortedOrders.length === 0 ? (
-          <div className="glass-card section-box">
-            <h2 className="section-title">Nenhum pedido no momento</h2>
-            <p className="section-subtitle">
-              Assim que um pedido for confirmado pelo cliente, ele aparece aqui.
-            </p>
-          </div>
+          <div style={styles.empty}>Nenhum pedido recebido ainda.</div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div style={styles.grid}>
             {sortedOrders.map((order) => (
-              <article key={order.id} className="glass-card kitchen-card">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="kitchen-order-id">Pedido #{order.id}</p>
-                    <h2 className="kitchen-table">{order.table}</h2>
-                  </div>
+              <article key={order.id} style={styles.card}>
+                <div style={styles.orderId}>Pedido #{order.id}</div>
 
-                  <StatusBadge status={order.status} />
+                <div style={styles.headerRow}>
+                  <h2 style={styles.table}>{order.table}</h2>
+                  <span style={getBadgeStyle(order.status)}>
+                    {order.status || "novo"}
+                  </span>
                 </div>
 
-                <div className="kitchen-items">
-                  {order.items.map((item, index) => (
-                    <div key={`${order.id}-${item.id}-${index}`} className="kitchen-item">
-                      <p className="kitchen-item-title">
+                <div style={styles.itemsWrap}>
+                  {(order.items || []).map((item) => (
+                    <div
+                      key={`${order.id}-${item.id}-${item.name}`}
+                      style={styles.itemCard}
+                    >
+                      <div style={styles.itemName}>
                         {item.quantity}x {item.name}
-                      </p>
-
-                      {item.notes ? (
-                        <p className="kitchen-item-note">{item.notes}</p>
-                      ) : (
-                        <p className="kitchen-item-note">Sem observações</p>
-                      )}
+                      </div>
+                      <div style={styles.itemNotes}>
+                        {item.notes?.trim() || "Sem observações"}
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="kitchen-actions">
+                <div style={styles.actions}>
                   <button
                     type="button"
-                    onClick={async () => {
-                      await updateOrderStatus(order.id, "preparo");
-                    }}
-                    className="btn btn-blue"
+                    style={styles.prepButton}
+                    onClick={() => updateOrderStatus(order.id, "preparo")}
                   >
                     Marcar preparo
                   </button>
 
                   <button
                     type="button"
-                    onClick={async () => {
-                      await updateOrderStatus(order.id, "pronto");
-                    }}
-                    className="btn btn-green"
+                    style={styles.readyButton}
+                    onClick={() => updateOrderStatus(order.id, "pronto")}
                   >
                     Marcar pronto
                   </button>

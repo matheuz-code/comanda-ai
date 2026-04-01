@@ -1,238 +1,400 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import MenuCard from "../../components/MenuCard";
-import OrderSummary from "../../components/OrderSummary";
 import { menuItems } from "../../data/mockData";
-import { useOrders } from "../../context/OrderContext";
-import { parseOrderText } from "../../utils/orderInterpreter";
 
-const categories = ["Todos", "Hambúrgueres", "Batatas", "Bebidas", "Sobremesas"];
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
-function mergeCartItems(currentItems, incomingItems) {
-  const map = new Map();
+function mergeCartItem(cart, incomingItem) {
+  const existingIndex = cart.findIndex(
+    (item) =>
+      item.id === incomingItem.id &&
+      normalizeText(item.notes) === normalizeText(incomingItem.notes)
+  );
 
-  [...currentItems, ...incomingItems].forEach((item) => {
-    const key = `${item.name}-${item.notes || ""}`;
+  if (existingIndex === -1) {
+    return [...cart, incomingItem];
+  }
 
-    if (map.has(key)) {
-      const existing = map.get(key);
-      const quantity = existing.quantity + item.quantity;
-      const total = Number((existing.unitPrice * quantity).toFixed(2));
+  const updated = [...cart];
+  const current = updated[existingIndex];
+  const newQuantity = current.quantity + incomingItem.quantity;
 
-      map.set(key, {
-        ...existing,
-        quantity,
-        total,
-      });
-    } else {
-      map.set(key, {
-        ...item,
-        total: Number((item.unitPrice * item.quantity).toFixed(2)),
-      });
-    }
-  });
+  updated[existingIndex] = {
+    ...current,
+    quantity: newQuantity,
+    total: Number(current.price) * newQuantity,
+  };
 
-  return Array.from(map.values());
+  return updated;
 }
 
 export default function ClientPage() {
-  const [table, setTable] = useState("Mesa 9");
-  const [input, setInput] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Todos");
-  const [cartItems, setCartItems] = useState([]);
+  const [tableNumber, setTableNumber] = useState("Mesa 9");
+  const [orderText, setOrderText] = useState("");
+  const [cart, setCart] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [isInterpreting, setIsInterpreting] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
 
-  const { addConfirmedOrder } = useOrders();
+  const categories = useMemo(() => {
+    const unique = [...new Set(menuItems.map((item) => item.category))];
+    return ["Todos", ...unique];
+  }, []);
 
   const filteredItems = useMemo(() => {
-    if (activeCategory === "Todos") return menuItems;
-    return menuItems.filter((item) => item.category === activeCategory);
-  }, [activeCategory]);
+    if (selectedCategory === "Todos") return menuItems;
+    return menuItems.filter((item) => item.category === selectedCategory);
+  }, [selectedCategory]);
 
   const total = useMemo(() => {
-    return Number(
-      cartItems.reduce((sum, item) => sum + Number(item.total || 0), 0).toFixed(2)
-    );
-  }, [cartItems]);
+    return cart.reduce((sum, item) => sum + Number(item.total || 0), 0);
+  }, [cart]);
 
-  function handleAddItem(item) {
-    const normalizedItem = {
-      id: `${item.id}-sem-obs`,
-      name: item.name,
-      quantity: 1,
-      notes: "",
-      unitPrice: Number(item.price || 0),
-      total: Number(item.price || 0),
+  function addToCart(menuItem, quantity = 1, notes = "") {
+    const safeQuantity = Math.max(1, Number(quantity || 1));
+
+    const cartItem = {
+      id: menuItem.id,
+      name: menuItem.name,
+      category: menuItem.category,
+      description: menuItem.description,
+      price: Number(menuItem.price),
+      quantity: safeQuantity,
+      notes: notes || "",
+      total: Number(menuItem.price) * safeQuantity,
     };
 
-    setCartItems((prev) => mergeCartItems(prev, [normalizedItem]));
+    setCart((prev) => mergeCartItem(prev, cartItem));
   }
 
-  function handleInterpretOrder() {
-    const interpreted = parseOrderText(input, menuItems);
+  function handleAddManual(menuItem) {
+    addToCart(menuItem, 1, "");
+  }
 
-    if (!interpreted.length) {
-      window.alert("Não consegui interpretar esse pedido. Tente escrever de outra forma.");
+  function handleRemoveItem(itemId, notes = "") {
+    setCart((prev) =>
+      prev.filter(
+        (item) =>
+          !(
+            item.id === itemId &&
+            normalizeText(item.notes) === normalizeText(notes)
+          )
+      )
+    );
+  }
+
+  function handleClearOrder() {
+    setCart([]);
+    setOrderText("");
+  }
+
+  async function handleInterpretOrder() {
+    if (!orderText.trim()) {
+      window.alert("Digite um pedido para a IA interpretar.");
       return;
     }
 
-    setCartItems((prev) => mergeCartItems(prev, interpreted));
-    setInput("");
-  }
+    setIsInterpreting(true);
 
-  function handleRemoveItem(itemId) {
-    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-  }
+    try {
+      const response = await fetch("/api/interpret", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: orderText,
+        }),
+      });
 
-  function handleClearCart() {
-    setCartItems([]);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Falha ao interpretar pedido.");
+      }
+
+      const interpretedItems = Array.isArray(data?.items) ? data.items : [];
+
+      if (!interpretedItems.length) {
+        window.alert(data?.message || "Não temos essa opção no cardápio.");
+        return;
+      }
+
+      interpretedItems.forEach((item) => {
+        const matchedMenuItem = menuItems.find(
+          (menuItem) => normalizeText(menuItem.name) === normalizeText(item.name)
+        );
+
+        if (matchedMenuItem) {
+          addToCart(
+            matchedMenuItem,
+            Number(item.quantity || 1),
+            String(item.notes || "")
+          );
+        }
+      });
+
+      setOrderText("");
+    } catch (error) {
+      console.error("Erro ao interpretar pedido:", error);
+      window.alert("Não foi possível interpretar o pedido com IA.");
+    } finally {
+      setIsInterpreting(false);
+    }
   }
 
   async function handleConfirmOrder() {
-    if (!cartItems.length) {
-      window.alert("Adicione itens antes de confirmar o pedido.");
+    if (!cart.length) {
+      window.alert("Adicione itens ao pedido antes de confirmar.");
       return;
     }
 
-    const result = await addConfirmedOrder({
-      table,
-      items: cartItems,
-    });
+    if (!tableNumber.trim()) {
+      window.alert("Informe o número da mesa.");
+      return;
+    }
 
-    if (!result.success) {
+    setIsConfirming(true);
+
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          table: tableNumber.trim(),
+          status: "novo",
+          total,
+          items: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            notes: item.notes || "",
+            total: Number(item.total),
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.price),
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Falha ao confirmar pedido.");
+      }
+
+      window.alert("Pedido confirmado com sucesso.");
+      setCart([]);
+      setOrderText("");
+    } catch (error) {
+      console.error("Erro ao confirmar pedido:", error);
       window.alert("Não foi possível confirmar o pedido.");
-      return;
+    } finally {
+      setIsConfirming(false);
     }
-
-    setCartItems([]);
-    setInput("");
-    window.alert("Pedido confirmado com sucesso.");
   }
 
   return (
     <main className="page-shell">
-      <div className="page-container">
-        <header className="page-header">
-          <h1 className="page-title">Cliente • Comanda AI</h1>
-          <p className="page-subtitle">
-            Monte o pedido pelo cardápio ou escreva naturalmente para a IA interpretar.
+      <section className="hero-section">
+        <h1 className="hero-title">Cliente • Comanda AI</h1>
+        <p className="hero-subtitle">
+          Monte o pedido pelo cardápio ou escreva naturalmente para a IA interpretar.
+        </p>
+      </section>
+
+      <section className="client-grid">
+        <div className="panel-card">
+          <h2 className="panel-title">Novo pedido</h2>
+          <p className="panel-subtitle">
+            Preencha a mesa, escreva o pedido ou adicione itens manualmente.
           </p>
-        </header>
 
-        <div className="client-layout">
-          <section className="panel-spacing">
-            <div className="glass-card form-panel">
-              <div className="form-section">
-                <div>
-                  <h2 className="section-title">Novo pedido</h2>
-                  <p className="section-subtitle">
-                    Preencha a mesa, escreva o pedido ou adicione itens manualmente.
-                  </p>
-                </div>
+          <div className="field-group">
+            <label className="field-label">Número da mesa</label>
+            <input
+              className="field-input"
+              type="text"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              placeholder="Mesa 9"
+            />
+          </div>
 
-                <div className="form-divider" />
+          <div className="field-group">
+            <label className="field-label">Pedido em linguagem natural</label>
+            <p className="field-helper">
+              Exemplo: “quero 2 x-bacon, 1 coca zero e tira a cebola de um deles”.
+            </p>
 
-                <div className="field-group">
-                  <label className="field-label" htmlFor="table-number">
-                    Número da mesa
-                  </label>
-                  <input
-                    id="table-number"
-                    className="field-input"
-                    value={table}
-                    onChange={(event) => setTable(event.target.value)}
-                    placeholder="Ex: Mesa 9"
-                  />
-                </div>
+            <textarea
+              className="field-textarea"
+              value={orderText}
+              onChange={(e) => setOrderText(e.target.value)}
+              placeholder="Escreva aqui o pedido do cliente..."
+              rows={5}
+            />
+          </div>
 
-                <div className="field-group">
-                  <label className="field-label" htmlFor="order-text">
-                    Pedido em linguagem natural
-                  </label>
-                  <p className="field-help">
-                    Exemplo: “quero 2 x-bacon, 1 coca zero e tira a cebola de um deles”.
-                  </p>
-                  <textarea
-                    id="order-text"
-                    className="field-textarea"
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    placeholder="Escreva aqui o pedido do cliente..."
-                  />
-                </div>
+          <div className="actions-row">
+            <button
+              className="primary-button"
+              onClick={handleInterpretOrder}
+              disabled={isInterpreting}
+            >
+              {isInterpreting ? "Interpretando..." : "Interpretar pedido com IA"}
+            </button>
 
-                <div className="action-row">
-                  <button
-                    type="button"
-                    onClick={handleInterpretOrder}
-                    className="btn btn-primary"
-                  >
-                    Interpretar pedido com IA
-                  </button>
+            <button
+              className="secondary-button"
+              onClick={() => setOrderText("")}
+              disabled={isInterpreting}
+            >
+              Limpar texto
+            </button>
+          </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setInput("")}
-                    className="btn btn-secondary"
-                  >
-                    Limpar texto
-                  </button>
-                </div>
+          <div className="tip-box">
+            <strong>Dica:</strong> o botão de interpretar soma os itens ao pedido atual.
+            Os itens adicionados aparecem imediatamente no resumo ao lado.
+          </div>
 
-                <div className="helper-banner">
-                  <strong>Dica:</strong> o botão de interpretar soma os itens ao pedido atual. Os itens adicionados aparecem imediatamente no resumo ao lado.
-                </div>
-              </div>
-            </div>
+          <div className="menu-section">
+            <h2 className="panel-title">Cardápio</h2>
+            <p className="panel-subtitle">
+              Escolha uma categoria ou adicione itens diretamente.
+            </p>
 
-            <div className="section-box glass-card">
-              <div className="section-block">
-                <div>
-                  <h2 className="section-title">Cardápio</h2>
-                  <p className="section-subtitle">
-                    Escolha uma categoria ou adicione itens diretamente.
-                  </p>
-                </div>
-
-                <div className="chips-row">
-                  {categories.map((category) => {
-                    const isActive = activeCategory === category;
-
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => setActiveCategory(category)}
-                        className={isActive ? "chip chip-active" : "chip"}
-                        aria-pressed={isActive}
-                      >
-                        {category}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="menu-grid">
-              {filteredItems.map((item) => (
-                <MenuCard key={item.id} item={item} onAdd={handleAddItem} />
+            <div className="category-tabs">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  className={`category-tab ${
+                    selectedCategory === category ? "active" : ""
+                  }`}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </button>
               ))}
             </div>
-          </section>
 
-          <aside className="sticky-summary">
-            <OrderSummary
-              items={cartItems}
-              total={total}
-              onConfirm={handleConfirmOrder}
-              onClear={handleClearCart}
-              onRemoveItem={handleRemoveItem}
-              disabled={!cartItems.length}
-            />
-          </aside>
+            <div className="menu-list">
+              {filteredItems.map((item) => (
+                <article key={item.id} className="menu-card">
+                  <div className="menu-card-content">
+                    <div className="menu-card-top">
+                      <h3 className="menu-item-name">{item.name}</h3>
+                      <span className="menu-item-price">
+                        {Number(item.price).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </span>
+                    </div>
+
+                    <p className="menu-item-description">{item.description}</p>
+
+                    <div className="menu-card-bottom">
+                      <span className="menu-item-category">{item.category}</span>
+
+                      <button
+                        className="success-button"
+                        onClick={() => handleAddManual(item)}
+                      >
+                        Adicionar ao pedido
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+
+        <aside className="summary-card">
+          <h2 className="panel-title">Resumo do pedido</h2>
+          <p className="panel-subtitle">
+            Confira os itens antes de enviar para a cozinha.
+          </p>
+
+          {!cart.length ? (
+            <div className="empty-summary">
+              Nenhum item no pedido ainda. Você pode adicionar itens pelo cardápio ou
+              escrever o pedido no campo de interpretação.
+            </div>
+          ) : (
+            <div className="summary-list">
+              {cart.map((item) => (
+                <div
+                  key={`${item.id}-${item.notes || "sem-notes"}`}
+                  className="summary-item"
+                >
+                  <div>
+                    <p className="summary-item-title">
+                      {item.quantity}x {item.name}
+                    </p>
+                    <p className="summary-item-notes">
+                      {item.notes?.trim() ? item.notes : "Sem observações"}
+                    </p>
+                  </div>
+
+                  <div className="summary-item-right">
+                    <span className="summary-item-price">
+                      {Number(item.total).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </span>
+
+                    <button
+                      className="remove-button"
+                      onClick={() => handleRemoveItem(item.id, item.notes)}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="summary-total">
+            <span>Total</span>
+            <strong>
+              {Number(total).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </strong>
+          </div>
+
+          <div className="summary-actions">
+            <button
+              className="confirm-button"
+              onClick={handleConfirmOrder}
+              disabled={!cart.length || isConfirming}
+            >
+              {isConfirming ? "Confirmando..." : "Confirmar pedido"}
+            </button>
+
+            <button
+              className="clear-button"
+              onClick={handleClearOrder}
+              disabled={!cart.length}
+            >
+              Limpar pedido
+            </button>
+          </div>
+        </aside>
+      </section>
     </main>
   );
 }
