@@ -14,6 +14,10 @@ export function OrderProvider({ children }) {
         cache: "no-store",
       });
 
+      if (response.status === 401) {
+        setOrders([]);
+        return;
+      }
       if (!response.ok) {
         throw new Error("Falha ao buscar pedidos.");
       }
@@ -29,7 +33,24 @@ export function OrderProvider({ children }) {
   }
 
   useEffect(() => {
-    fetchOrders();
+    let active = true;
+    fetch("/api/orders", { cache: "no-store" })
+      .then(async (response) => {
+        if (response.status === 401) return [];
+        if (!response.ok) throw new Error("Falha ao buscar pedidos.");
+        return response.json();
+      })
+      .then((data) => {
+        if (active) setOrders(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar pedidos:", error);
+        if (active) setOrders([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
   }, []);
 
   async function createOrder(orderData) {
@@ -45,7 +66,8 @@ export function OrderProvider({ children }) {
       throw new Error("Falha ao criar pedido.");
     }
 
-    const createdOrder = await response.json();
+    const payload = await response.json();
+    const createdOrder = payload.order ?? payload;
 
     setOrders((prev) => [createdOrder, ...prev]);
 
@@ -65,7 +87,8 @@ export function OrderProvider({ children }) {
       throw new Error("Falha ao atualizar status do pedido.");
     }
 
-    const updatedOrder = await response.json();
+    const payload = await response.json();
+    const updatedOrder = payload.order ?? payload;
 
     setOrders((prev) =>
       prev.map((order) => (order.id === orderId ? updatedOrder : order))
