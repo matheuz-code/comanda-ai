@@ -1,8 +1,20 @@
 # Comanda Aí
 
-Projeto independente de pedidos para restaurantes, distinto do Dark Chicken SRS. Next.js 16, React 19, JavaScript, PostgreSQL/Neon e autenticação por cookie assinado. **Estado: versão local em revisão de segurança, sem novo deploy homologado.**
+Projeto independente de pedidos para restaurantes, distinto do Dark Chicken SRS. Next.js 16, React 19, JavaScript, PostgreSQL/Neon e autenticação por cookie assinado. **Estado: demonstração pública independente disponível; sistema fullstack original em revisão de segurança no PR #1, sem merge.**
 
-## Fluxos implementados no código
+## Demonstração pública, sem login de hospedagem
+
+https://matheuz-code.github.io/comanda-ai/
+
+MVP independente em `docs/`, feito em HTML, CSS e JavaScript: cardápio com busca e filtro, carrinho, quantidades, remoção, totais em centavos, confirmação de pedido, histórico e cozinha com atualização de status. Produtos, preços e mesas são fictícios. Carrinho e pedidos ficam no localStorage do próprio navegador e sobrevivem à recarga; não há sincronização entre dispositivos, pagamento, entrega ou acesso ao banco original. Não informe dados pessoais.
+
+O GitHub Pages publica apenas `docs/` da branch `portfolio/security-review`, preservando `main` e o PR #1 sem merge. O preview fullstack na Vercel continua protegido. A demonstração pública não desativa autenticação nem homologa o backend original.
+
+Testar demo: `node --test docs/core.test.mjs` — 4 testes aprovados. Executar local: `python3 -m http.server 8000 --directory docs`. Em 30/10/2026, foram testados na URL pública: busca sem resultado, quantidades, remoção, mesa inválida, pedido confirmado e status de cozinha preservado após recarga. Verificação responsiva será registrada separadamente.
+
+![Pedido fictício na cozinha demonstrativa](docs/demo-preview.jpg)
+
+## Fluxos implementados no sistema fullstack
 
 Cardápio público, seleção de produtos e mesa, interpretação determinística de texto, pedidos persistidos, telas de cozinha e administração e login de equipe. A interpretação atual não exige IA paga nem chave de API. Não há pagamento real.
 
